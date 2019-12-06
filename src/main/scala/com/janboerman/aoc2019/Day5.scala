@@ -14,6 +14,10 @@ object Imports {
     val Multiply = 2
     val Input = 3
     val Output = 4
+    val JumpIfTrue = 5
+    val JumpIfFalse = 6
+    val LessThan = 7
+    val Equals = 8
     val Abort = 99
 
     val PositionMode = 0
@@ -28,6 +32,7 @@ object Day5 extends App {
     //val numbers = Array(1002, 4, 3, 4, 33)
 
     eval(numbers) //input: 1
+    eval(numbers) //input: 5
 
     def eval(memory: Memory): Unit = {
         var instructionPointer = 0
@@ -62,6 +67,26 @@ object Day5 extends App {
                 val one = readMemory(memory, o1, m1)
                 println(one)
                 address + 2
+            case Instruction(JumpIfTrue, List(m1, m2), List(o1, o2)) =>
+                val one = readMemory(memory, o1, m1)
+                val two = readMemory(memory, o2, m2)
+                if (one != 0) two else address + 3
+            case Instruction(JumpIfFalse, List(m1, m2), List(o1, o2)) =>
+                val one = readMemory(memory, o1, m1)
+                val two = readMemory(memory, o2, m2)
+                if (one == 0) two else address + 3
+            case Instruction(LessThan, List(m1, m2, 0), List(o1, o2, o3)) =>
+                val one = readMemory(memory, o1, m1)
+                val two = readMemory(memory, o2, m2)
+                val three = o3
+                memory(three) = if (one < two) 1 else 0
+                address + 4
+            case Instruction(Equals, List(m1, m2, 0), List(o1, o2, o3)) =>
+                val one = readMemory(memory, o1, m1)
+                val two = readMemory(memory, o2, m2)
+                val three = o3
+                memory(three) = if (one == two) 1 else 0
+                address + 4
             case Instruction(Abort, List(), List()) =>
                 -1
         }
@@ -84,7 +109,8 @@ object Instruction {
 
         //determine number of operands
         val numOperands = opCode match {
-            case Add | Multiply => 3
+            case Add | Multiply | LessThan | Equals => 3
+            case JumpIfTrue | JumpIfFalse => 2
             case Input | Output => 1
             case Abort => 0
         }
