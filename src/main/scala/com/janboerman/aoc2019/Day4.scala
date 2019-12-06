@@ -37,6 +37,7 @@ object Day4 extends App {
         count
     }
 
+    //I can probably factor out some common code between checkRequirements 1 and 2
     def checkRequirements2(number: Int): Option[Int] = {
         var pRight = 0;
 
@@ -121,6 +122,5 @@ object Day4 extends App {
 
         result
     }
-
 
 }
