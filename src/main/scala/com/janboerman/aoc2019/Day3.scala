@@ -35,13 +35,14 @@ object Day3 extends App {
         }
     }
 
-    val intersections = pointsOne.keySet.intersect(pointsTwo.keySet).filter(_ != origin)
+    val intersections = pointsOne.keySet.intersect(pointsTwo.keySet).filter(_ != origin) //filter is bad because it's O(n), instead I should use Set#remove which is O(1) but I cba right now.
+
     val closestIntersection: Point = intersections.minBy(manhattenDistance(_, origin))
     val closestDistance = manhattenDistance(origin, closestIntersection)
     println(closestDistance)
 
     val shortestIntersection: Point = intersections.minBy(point => pointsOne(point) + pointsTwo(point))
-    val sumSteps = pointsOne(shortestIntersection) + pointsTwo(shortestIntersection)
+    val sumSteps = pointsOne(shortestIntersection) + pointsTwo(shortestIntersection) //this calculation has already been done inside the minBy but I cba right now.
     println(sumSteps)
 
     def readPoints(from: Point, instruction: String, into: mutable.HashMap[Point, Steps]): Point = {
@@ -95,9 +96,4 @@ object Day3 extends App {
 
 }
 
-case class Point(x: Int, y: Int) extends Product2[Int, Int] {
-
-    override def _1: Int = x
-
-    override def _2: Int = y
-}
+case class Point(x: Int, y: Int)
