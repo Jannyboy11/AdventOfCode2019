@@ -138,6 +138,10 @@ case class Instruction(opcode: OpCode, modes: List[Mode], operands: List[Int]) {
             case Multiply => "Multiply"
             case Input => "Input"
             case Output => "Output"
+            case JumpIfFalse => "JumpIfFalse"
+            case JumpIfTrue => "JumpIfTrue"
+            case LessThan => "LessThan"
+            case Equals => "Equals"
             case Abort => "Abort"
         }
         val modesString = modes.map {case 0 => "PositionMode"; case 1 => "ImmediateMode"}

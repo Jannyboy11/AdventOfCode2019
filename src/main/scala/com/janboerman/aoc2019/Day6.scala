@@ -31,7 +31,7 @@ object Day6 extends App {
 
     val chain1 = chain("YOU")
     val chain2 = chain("SAN")
-    val commonLength = chain1.zip(chain2).takeWhile {case (x, y) =>  x == y}.size
+    val commonLength = chain1.zip(chain2).takeWhile({case (x, y) =>  x == y}).size
     val result2 = (chain1.size - commonLength) + (chain2.size - commonLength) - 2
     println(result2)
 

@@ -58,7 +58,7 @@ object Day4 extends App {
             pRight += 1
         }
 
-        if (doubles.exists({case (_, v) => v == 1})) None else Some(number + 1)
+        if (doubles.exists({case (_, v) => v == 1})) None else Some(number + 1 /*this is quite naive still*/)
     }
 
     def checkRequirements1(number: Int): Option[Int] = {
@@ -111,15 +111,15 @@ object Day4 extends App {
     }
 
     def intPow(base: Int, exp: Int): Int = {
-        if (exp == 0) return 1
-
-        var result = base
-        var i = 1
+        //this is quite naive as well still,
+        //but in this assignment the exponent does not ever become larger that 6
+        //so it's fine :)
+        var result = 1
+        var i = 0
         while (i < exp) {
             result *= base
             i += 1
         }
-
         result
     }
 
