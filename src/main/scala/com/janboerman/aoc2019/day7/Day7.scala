@@ -1,7 +1,5 @@
 package com.janboerman.aoc2019.day7
 
-import java.util
-
 import scala.collection.mutable
 import scala.io.Source
 
@@ -43,6 +41,7 @@ object Day7 extends App {
 
     def newMemory(): Memory = {
         numbers
+
         //IndexedSeq(3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0)
         //IndexedSeq(3,23,3,24,1002,24,10,24,1002,23,-1,23, 101,5,23,23,1,24,23,23,4,23,99,0,0)
         //IndexedSeq(3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33, 1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0)
@@ -55,11 +54,13 @@ object Day7 extends App {
     //println(evalSequentially(List(1,0,4,3,2)))
 
 
+    //println(evalFeedback(IndexedSeq(9,8,7,6,5)))
+
     val result1 = (0 to 4).permutations.map(settings => evalSequentially(settings)).max
     println(result1)
 
-
-    //println(evalFeedback(IndexedSeq(9,8,7,6,5)))
+    val result2 = (5 to 9).permutations.map(settings => evalFeedback(settings)).max
+    println(result2)
 
     def evalFeedback(phaseSettings: IndexedSeq[Phase]): Signal = {
         val amplifiers = mutable.HashMap[Int, Amplifier]()
@@ -69,19 +70,20 @@ object Day7 extends App {
         while (control != Stop) {
             var id = 0
             while (id < 5) {
-                var phase = phaseSettings(id)
+                val phase = phaseSettings(id)
 
-                //println(s"====================================== MOVING TO AMPLIFIER $id ======================================")
-                var amplifier = amplifiers.getOrElseUpdate(id, Amplifier(0, newMemory(), phase, 0, signal, control, FeedbackMode))
-                //amplifier.address = 0
+//                println(s"====================================== MOVING TO AMPLIFIER $id ======================================")
+                var amplifier = amplifiers.getOrElseUpdate(id, Amplifier(0, newMemory(), phase, 0, signal, Continue, FeedbackMode))
+                amplifier.signal = signal
+//                print("NEXT ")
+//                println(amplifier)
+//                println(Instruction.decode(amplifier.memory, amplifier.address))
 
-                amplifier = evalAmplifier(amplifier)
+                amplifier = runAmplifier(amplifier)
                 signal = amplifier.signal
                 control = amplifier.control
-                //println(s"UPDATED SIGNAL $signal")
-                //println(s"UPDATED CONTROL $control")
-                if (control == Stop) return signal
 
+                amplifier.control = Continue
                 amplifiers.put(id, amplifier)
 
                 id += 1
@@ -95,13 +97,13 @@ object Day7 extends App {
         var signal = 0
         for (phase <- phaseSettings) {
             var amplifier = Amplifier(address = 0, newMemory(), phase = phase, inputCounter = 0, signal = signal, Continue, SequentialMode)
-            amplifier = evalAmplifier(amplifier)
+            amplifier = runAmplifier(amplifier)
             signal = amplifier.signal
         }
         signal
     }
 
-    def evalAmplifier(amplifier: Amplifier): Amplifier = {
+    def runAmplifier(amplifier: Amplifier): Amplifier = {
         var amp = amplifier
         while (amp.control == Continue) {
             amp = stepAmplifier(amp)
@@ -114,11 +116,10 @@ object Day7 extends App {
 
         val instruction = Instruction.decode(memory, address)
 
-        println("====================================== AMPLIFIER ======================================")
-        println(amplifier)
-        println(instruction)
-        println()
-
+//        println("====================================== AMPLIFIER ======================================")
+//        println(amplifier)
+//        println(instruction)
+//        println()
 
         instruction match {
             case Instruction(Add, Seq(m1, m2, 0), Seq(o1, o2, o3)) =>
@@ -143,7 +144,7 @@ object Day7 extends App {
             case Instruction(Output, Seq(m1), Seq(o1)) =>
                 val one = readMemory(memory, o1, m1)
                 val control = if (amplifier.executionMode == SequentialMode) Continue else NextAmp
-                Amplifier(address + 2, memory, phase, inputCounter, signal = one, control, executionMode)
+                Amplifier(address + 2, memory, phase, inputCounter, signal = one, control = control, executionMode)
             case Instruction(JumpIfTrue, Seq(m1, m2), Seq(o1, o2)) =>
                 val one = readMemory(memory, o1, m1)
                 val two = readMemory(memory, o2, m2)
@@ -166,7 +167,7 @@ object Day7 extends App {
                 Amplifier(address + 4, memory.updated(three, result), phase, inputCounter, signal, Continue, executionMode)
             case Instruction(Abort, Seq(), Seq()) =>
                 val control = if (executionMode == SequentialMode) NextAmp else Stop
-                Amplifier(address, memory, phase, inputCounter, signal, control, executionMode)
+                Amplifier(address, memory, phase, inputCounter, signal, control = control, executionMode)
         }
     }
 
@@ -227,7 +228,7 @@ case class Instruction(opcode: OpCode, modes: Seq[Mode], operands: Seq[Int]) {
     }
 }
 
-case class Amplifier(var address: Address, memory: Memory, var phase: Phase, inputCounter: Int, signal: Signal, control: Control, executionMode: ExecutionMode) {
+case class Amplifier(address: Address, memory: Memory, var phase: Phase, inputCounter: Int, var signal: Signal, var control: Control, executionMode: ExecutionMode) {
     override def toString(): String = {
         s"Amplifier\n(address = $address\n,memory = $memory\n,phase = $phase\n,inputCounter = $inputCounter\n,signal = $signal\n,control = $control\n,executionMode = $executionMode\n)"
     }
