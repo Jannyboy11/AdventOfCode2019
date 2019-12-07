@@ -1,4 +1,4 @@
-package com.janboerman.aoc2019
+package com.janboerman.aoc2019.day2
 
 import scala.collection.mutable
 import scala.io.Source
@@ -79,4 +79,3 @@ object Day2 extends App {
         (numbers(address + 1), numbers(address + 2), numbers(address + 3))
     }
 }
-

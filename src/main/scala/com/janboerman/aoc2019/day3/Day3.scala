@@ -1,4 +1,4 @@
-package com.janboerman.aoc2019
+package com.janboerman.aoc2019.day3
 
 import scala.collection.mutable
 import scala.io.Source

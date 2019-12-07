@@ -1,4 +1,4 @@
-package com.janboerman.aoc2019
+package com.janboerman.aoc2019.day5
 
 import java.util
 

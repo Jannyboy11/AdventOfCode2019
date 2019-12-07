@@ -1,6 +1,6 @@
-package com.janboerman.aoc2019
+package com.janboerman.aoc2019.day6
 
-import com.janboerman.aoc2019.Aliases._
+import com.janboerman.aoc2019.day6.Aliases._
 
 import scala.collection.mutable
 import scala.io.Source
