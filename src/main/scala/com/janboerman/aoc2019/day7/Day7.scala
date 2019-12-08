@@ -53,14 +53,15 @@ object Day7 extends App {
     //println(evalSequentially(List(0,1,2,3,4)))
     //println(evalSequentially(List(1,0,4,3,2)))
 
-
     //println(evalFeedback(IndexedSeq(9,8,7,6,5)))
+
 
     val result1 = (0 to 4).permutations.map(settings => evalSequentially(settings)).max
     println(result1)
 
     val result2 = (5 to 9).permutations.map(settings => evalFeedback(settings)).max
     println(result2)
+
 
     def evalFeedback(phaseSettings: IndexedSeq[Phase]): Signal = {
         val amplifiers = mutable.HashMap[Int, Amplifier]()
@@ -69,12 +70,13 @@ object Day7 extends App {
 
         while (control != Stop) {
             var id = 0
-            while (id < 5) {
+            while (id < phaseSettings.size) {
                 val phase = phaseSettings(id)
 
-//                println(s"====================================== MOVING TO AMPLIFIER $id ======================================")
                 var amplifier = amplifiers.getOrElseUpdate(id, Amplifier(0, newMemory(), phase, 0, signal, Continue, FeedbackMode))
                 amplifier.signal = signal
+
+//                println(s"====================================== MOVING TO AMPLIFIER $id ======================================")
 //                print("NEXT ")
 //                println(amplifier)
 //                println(Instruction.decode(amplifier.memory, amplifier.address))
@@ -197,16 +199,16 @@ object Instruction {
         val operands = memory.slice(address + 1, address + 1 + numOperands)
 
         var i = 0
-        var opModes: List[Mode] = List()
+        var operandModes: List[Mode] = List()
         while (i < numOperands) {
             val last = modes % 10
-            opModes = opModes ++ List(last)
+            operandModes = operandModes ++ List(last)
 
             modes /= 10
             i += 1
         }
 
-        Instruction(opCode, opModes, operands)
+        Instruction(opCode, operandModes, operands)
     }
 }
 
@@ -228,7 +230,7 @@ case class Instruction(opcode: OpCode, modes: Seq[Mode], operands: Seq[Int]) {
     }
 }
 
-case class Amplifier(address: Address, memory: Memory, var phase: Phase, inputCounter: Int, var signal: Signal, var control: Control, executionMode: ExecutionMode) {
+case class Amplifier(address: Address, memory: Memory, phase: Phase, inputCounter: Int, var signal: Signal, var control: Control, executionMode: ExecutionMode) {
     override def toString(): String = {
         s"Amplifier\n(address = $address\n,memory = $memory\n,phase = $phase\n,inputCounter = $inputCounter\n,signal = $signal\n,control = $control\n,executionMode = $executionMode\n)"
     }
