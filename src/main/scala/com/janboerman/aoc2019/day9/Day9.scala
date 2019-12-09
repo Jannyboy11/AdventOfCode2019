@@ -6,10 +6,9 @@ object Imports {
     type MemoryValue = BigInt
     type Address = Int
     type OpCode = Int
-    type Mode = Int
+    type OperandMode = Int
     type Memory = IndexedSeq[MemoryValue]
     type Signal = MemoryValue
-    type Phase = MemoryValue
 
     val Add = 1
     val Multiply = 2
@@ -29,9 +28,11 @@ object Imports {
     implicit class StringExtension(private val value: String) extends AnyVal {
         @inline def toMemoryValue: MemoryValue = new BigInt(new java.math.BigInteger(value))
     }
+
     implicit class LongExtension(private val value: Long) extends AnyVal {
         @inline def toMemoryValue: MemoryValue = BigInt(value)
     }
+
     implicit class IntExtension(private val value: Int) extends AnyVal {
         @inline def toMemoryValue: MemoryValue = BigInt(value)
     }
@@ -90,20 +91,18 @@ object Day9 extends App {
 //        println()
 
         instruction match {
-            case Instruction(Add, Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
+            case Instruction(opCode@(Add | Multiply | LessThan | Equals), Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
                 val (mem1, one) = readOperand(memory, o1, m1, relativeBase)
                 val (mem2, two) = readOperand(mem1, o2, m2, relativeBase)
                 val position = writePosition(o3, m3, relativeBase)
                 var newMemory = resizeMemory(mem2, position)
-                val result = one + two
-                newMemory = newMemory.updated(position, result)
-                Computer(nextAddress, newMemory, relativeBase, inputCounter, signal, Continue, executionMode)
-            case Instruction(Multiply, Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
-                val (mem1, one) = readOperand(memory, o1, m1, relativeBase)
-                val (mem2, two) = readOperand(mem1, o2, m2, relativeBase)
-                val position = writePosition(o3, m3, relativeBase)
-                var newMemory = resizeMemory(mem2, position)
-                val result = one * two
+                val operation: (MemoryValue, MemoryValue) => MemoryValue = opCode match {
+                    case Add => (_ + _)
+                    case Multiply => (_ * _)
+                    case LessThan => (one, two) => if (one < two) 1 else 0
+                    case Equals => (one, two) => if (one == two) 1 else 0
+                }
+                val result = operation(one, two)
                 newMemory = newMemory.updated(position, result)
                 Computer(nextAddress, newMemory, relativeBase, inputCounter, signal, Continue, executionMode)
             case Instruction(Input, Seq(m1), Seq(o1)) =>
@@ -114,30 +113,15 @@ object Day9 extends App {
                 val (_, one) = readOperand(memory, o1, m1, relativeBase)
                 val ctrl = if (computer.executionMode == SequentialMode) Continue else NextCpu
                 Computer(nextAddress, memory, relativeBase, inputCounter, signal = one, control = ctrl, executionMode)
-            case Instruction(JumpIfTrue, Seq(m1, m2), Seq(o1, o2)) =>
+            case Instruction(opCode@(JumpIfTrue | JumpIfFalse), Seq(m1, m2), Seq(o1, o2)) =>
                 val (_, one) = readOperand(memory, o1, m1, relativeBase)
                 val (_, two) = readOperand(memory, o2, m2, relativeBase)
-                Computer(if (one != 0) two.toInt else nextAddress, memory, relativeBase, inputCounter, signal, Continue, executionMode)
-            case Instruction(JumpIfFalse, Seq(m1, m2), Seq(o1, o2)) =>
-                val (_, one) = readOperand(memory, o1, m1, relativeBase)
-                val (_, two) = readOperand(memory, o2, m2, relativeBase)
-                Computer(if (one == 0) two.toInt else nextAddress, memory, relativeBase, inputCounter, signal, Continue, executionMode)
-            case Instruction(LessThan, Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
-                val (mem1, one) = readOperand(memory, o1, m1, relativeBase)
-                val (mem2, two) = readOperand(mem1, o2, m2, relativeBase)
-                val position = writePosition(o3, m3, relativeBase)
-                var newMemory = resizeMemory(mem2, position)
-                val result = if (one < two) 1 else 0
-                newMemory = newMemory.updated(position, result)
-                Computer(nextAddress, newMemory, relativeBase, inputCounter, signal, Continue, executionMode)
-            case Instruction(Equals, Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
-                val (mem1, one) = readOperand(memory, o1, m1, relativeBase)
-                val (mem2, two) = readOperand(mem1, o2, m2, relativeBase)
-                val position = writePosition(o3, m3, relativeBase)
-                var newMemory = resizeMemory(mem2, position)
-                val result = if (one == two) 1 else 0
-                newMemory = newMemory.updated(position, result)
-                Computer(nextAddress, newMemory, relativeBase, inputCounter, signal, Continue, executionMode)
+                val jump = opCode match {
+                    case JumpIfFalse if (one == 0) => two.toInt
+                    case JumpIfTrue if (one != 0) => two.toInt
+                    case _ => nextAddress
+                }
+                Computer(jump, memory, relativeBase, inputCounter, signal, Continue, executionMode)
             case Instruction(RelativeOffset, Seq(m1), Seq(o1)) =>
                 val (newMemory, one) = readOperand(memory, o1, m1, relativeBase)
                 val newRelativeBase = relativeBase + one.toInt
@@ -151,13 +135,13 @@ object Day9 extends App {
         }
     }
 
-    def writePosition(offset: MemoryValue, mode: Mode, relativeBase: Address): Address = mode match {
+    def writePosition(offset: MemoryValue, mode: OperandMode, relativeBase: Address): Address = mode match {
         case PositionMode => offset.intValue
         case RelativeMode => relativeBase + offset.intValue
         case ImmediateMode => throw new RuntimeException("Cannot write to immediate value!")
     }
 
-    def readOperand(memory: Memory, operand: MemoryValue, mode: Mode, relativeBase: Address): (Memory, MemoryValue) = {
+    def readOperand(memory: Memory, operand: MemoryValue, mode: OperandMode, relativeBase: Address): (Memory, MemoryValue) = {
         var mem = memory
         val value = mode match {
             case PositionMode =>
@@ -197,7 +181,7 @@ object Instruction {
         val operands = memory.slice(address + 1, address + 1 + numOperands)
 
         var i = 0
-        var operandModes: List[Mode] = List()
+        var operandModes: List[OperandMode] = List()
         while (i < numOperands) {
             val last = modes % 10
             operandModes = operandModes ++ List(last)
@@ -206,11 +190,11 @@ object Instruction {
             i += 1
         }
 
-        Instruction(opCode.toInt, operandModes, operands)
+        Instruction(opCode, operandModes, operands)
     }
 }
 
-case class Instruction(opcode: OpCode, modes: Seq[Mode], operands: Seq[MemoryValue]) {
+case class Instruction(opcode: OpCode, modes: Seq[OperandMode], operands: Seq[MemoryValue]) {
     override def toString(): String = {
         val opcodeString = opcode match {
             case Add => "Add"
