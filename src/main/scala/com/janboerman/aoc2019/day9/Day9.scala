@@ -59,9 +59,17 @@ object Day9 extends App {
         //IndexedSeq(104L,1125899906842624L,99L).map(_.toMemoryValue)
     }
 
-    val computer = Computer(newMemory, 1L, SequentialMode)
-    val result1 = runComputer(computer)
-    println(result1.signal)
+    {
+        val computer = Computer(newMemory, 1L, SequentialMode)
+        val result1 = runComputer(computer)
+        println(result1.signal)
+    }
+    {
+        val computer = Computer(newMemory, 2L, SequentialMode)
+        val result2 = runComputer(computer)
+        println(result2.signal)
+    }
+
 
     def runComputer(computer: Computer): Computer = {
         var cpu = computer
