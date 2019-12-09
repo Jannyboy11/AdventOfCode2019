@@ -133,7 +133,7 @@ object Day7 extends App {
             case Instruction(Multiply, Seq(m1, m2, 0), Seq(o1, o2, o3)) =>
                 val one = readMemory(memory, o1, m1)
                 val two = readMemory(memory, o2, m2)
-                val three = o3 //idem
+                val three = o3
                 val result = one * two
                 Amplifier(address + 4, memory.updated(three, result), phase, inputCounter, signal, Continue, executionMode)
             case Instruction(Input, Seq(0), Seq(o1)) =>

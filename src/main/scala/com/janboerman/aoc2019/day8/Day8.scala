@@ -23,17 +23,17 @@ object Day8 extends App {
     //picture = IndexedSeq(IndexedSeq(0, 2, 2, 2), IndexedSeq(1, 1, 2, 2), IndexedSeq(2, 2, 1, 2), IndexedSeq(0, 0, 0, 0))
 
     //result2
-    var image = picture.foldLeft[Iterable[Int]](List.fill(wide * tall)(2))(mergeLayer)
+    var image = picture.foldLeft[Iterable[Int]](List.fill(wide * tall)(2))(mergeLayers)
     for (row <- image.grouped(wide)) {
-        val line = row
-            .map {
+        val line = row.map {
             case 0 => '\u2591'
             case 1 => '\u2588'
-        }.mkString
+        } .mkString
         println(line)
     }
 
-    def mergeLayer(layer1: Iterable[Int], layer2: Iterable[Int]): Iterable[Int] = {
+    //could probably preserve higher kinded type in return value
+    def mergeLayers(layer1: Iterable[Int], layer2: Iterable[Int]): Iterable[Int] = {
         layer1.zip(layer2).map {case (p1, p2) => if (p1 != 2) p1 else p2}
     }
 }
