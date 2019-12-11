@@ -19,7 +19,7 @@ object Imports {
         if (diff.x == 0 && diff.y > 0) return Math.PI
         if (diff.x < 0 && diff.y == 0) return Math.PI * 1.5
 
-        def inverseTan(overstaande: Int, aanliggende: Int): Double = Math.atan(overstaande.toDouble / aanliggende.toDouble)
+        def inverseTan(opposite: Int, adjacent: Int): Double = Math.atan(opposite.toDouble / adjacent.toDouble)
 
         if (diff.x == 0 && diff.y < 0) 0
         else if (diff.x > 0 && diff.y < 0 && diff.x < -diff.y) inverseTan(diff.x, -diff.y)
@@ -77,9 +77,9 @@ object Day10 extends App {
 //    example.foreach(println)
 //    println(solutionOne(example))
 
-//    val (resultX, resultY, resultCount) = solutionOne(map)
-//    println(resultCount)
-//
+    val (resultX, resultY, resultCount) = solutionOne(map)
+    println(resultCount)
+
 //    val example21 = makeMap(".#....#####...#..\n##...##.#####..##\n##...#...#.#####.\n..#.....X...###..\n..#.#.....#....##")
 //    example21.foreach(println)
 //
@@ -90,15 +90,15 @@ object Day10 extends App {
 //    newMap21.foreach(println)
 //    println(point21)
 
-    var test17 = makeMap(".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##")
-    val test17Center = Point(11, 13)
-    test17 = test17.updated(test17Center.y, test17(test17Center.y).updated(test17Center.x, Station))
+//    var test17 = makeMap(".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##")
+//    val test17Center = Point(11, 13)
+//    test17 = test17.updated(test17Center.y, test17(test17Center.y).updated(test17Center.x, Station))
+//
+//    val (point17, count17, newMap17) = solutionTwo(test17, test17Center, 200)
+//    println(point17)
 
-    val (point17, count17, newMap17) = solutionTwo(test17, test17Center, 200)
-    println(point17)
-
-//    val (Point(x, y), count, newMap) = solutionTwo(map, Point(resultX, resultY), 200)
-//    println(100 * x + y)
+    val (Point(x, y), count, newMap) = solutionTwo(map, Point(resultX, resultY), 200)
+    println(100 * x + y)
 
 
     def solutionTwo(map: AsteroidMap, centre: Point, maxCount: Int): (Point, Int, AsteroidMap) = {
@@ -119,11 +119,13 @@ object Day10 extends App {
         var m = map
 
         while (count < maxCount) {
-            val Point(dirX, dirY) = point - centre
+            val relative@Point(dirX, dirY) = point - centre
 
             println()
             m.foreach(println)
+            println(s"relative $relative")
             println()
+
 
             step(m, centre.x, centre.y, dirX, dirY)(count) match {
                 case Some((foundPoint, newMap)) =>
