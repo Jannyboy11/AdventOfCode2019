@@ -95,9 +95,12 @@ object Day10 extends App {
 //    test17 = test17.updated(test17Center.y, test17(test17Center.y).updated(test17Center.x, Station))
 //
 //    val (point17, count17, newMap17) = solutionTwo(test17, test17Center, 200)
+//    println()
+//    newMap17.foreach(println)
 //    println(point17)
 
-    val (Point(x, y), count, newMap) = solutionTwo(map, Point(resultX, resultY), 200)
+    val mapWithCentre = map.updated(resultY, map(resultY).updated(resultX, Station))
+    val (Point(x, y), count, newMap) = solutionTwo(mapWithCentre, Point(resultX, resultY), 200)
     println(100 * x + y)
 
 
@@ -119,26 +122,22 @@ object Day10 extends App {
         var m = map
 
         while (count < maxCount) {
-            val relative@Point(dirX, dirY) = point - centre
+            val Point(dirX, dirY) = point - centre
 
-            println()
-            m.foreach(println)
-            println(s"relative $relative")
-            println()
-
-
-            step(m, centre.x, centre.y, dirX, dirY)(count) match {
+            val done = step(m, centre.x, centre.y, dirX, dirY)(count+1) match {
                 case Some((foundPoint, newMap)) =>
                     count += 1
                     m = newMap
                     point = foundPoint
-                case None => ()
+                    count == maxCount
+                case None => false
             }
 
-            //TODO check this
-            val (newPoint, newList) = nextPoint(point, infiniteList, centre)
-            point = newPoint
-            infiniteList = newList
+            if (!done) {
+                val (newPoint, newList) = nextPoint(point, infiniteList, centre)
+                point = newPoint
+                infiniteList = newList
+            }
         }
 
         (point, count, m)
