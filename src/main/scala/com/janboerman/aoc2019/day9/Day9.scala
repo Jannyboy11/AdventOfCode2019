@@ -157,9 +157,7 @@ object Day9 extends App {
         (mem, value)
     }
 
-    def resizeMemory(memory: Memory, toIndex: Address): Memory = {
-        if (toIndex < memory.size) memory else memory ++ IndexedSeq.fill(toIndex - memory.size + 1)(0L)
-    }
+    def resizeMemory(memory: Memory, toIndex: Address): Memory = memory.padTo(toIndex + 1, 0)
 
 }
 
