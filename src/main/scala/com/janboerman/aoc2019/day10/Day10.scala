@@ -250,6 +250,8 @@ object Day10 extends App {
 }
 
 object Point {
+    private lazy val Zero = Point(0, 0)
+
     implicit def ordering(implicit centerPoint: Point): Ordering[Point] = new Ordering[Point] {
         override def compare(one: Point, two: Point): Int = {
             val angleOne = angle(centerPoint, one)
@@ -262,6 +264,8 @@ object Point {
                 Math.abs(centerPoint.manhattanDistance(one)).compareTo(Math.abs(centerPoint.manhattanDistance(two)))
         }
     }
+
+    def zero: Point = Zero
 }
 
 case class Point(x: Int, y: Int) {
@@ -275,19 +279,7 @@ case class Point(x: Int, y: Int) {
     def +(that: Point): Point = add(that)
 
     def isMutipleOf(other: Point): Boolean = {
-        //always relative to (0, 0)
-        val that = other.minimise
-
-        val (remX, remY) = if (that.x == 0) {
-            (0, this.y % that.y)
-        } else if (that.y == 0) {
-            (this.x % that.x, 0)
-        } else {
-            (this.x % that.x, this.y % that.y)
-        }
-
-        //TODO check this
-        remX == 0 && remY == 0
+        this.minimise == other.minimise
     }
 
     def minimise: Point = {
