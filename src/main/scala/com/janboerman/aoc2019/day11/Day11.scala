@@ -47,43 +47,63 @@ object Day11 extends App {
     val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(string => new BigInt(new java.math.BigInteger(string))).toIndexedSeq
 
     def makeMemory(): Memory = {
-
-        Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Black)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
-            Instruction(Input, Seq(PositionMode), Seq(0)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Black)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Right)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
-            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
-            Instruction(Abort, Seq(), Seq()).encode()
+//        Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Black)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+//            Instruction(Input, Seq(PositionMode), Seq(0)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Black)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Right)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+//            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+//            Instruction(Abort, Seq(), Seq()).encode()
 
         numbers
-
-        //Instruction.encode(Instruction(Add, Seq(ImmediateMode, ImmediateMode, PositionMode), Seq(2L, 3L, 20L))) ++ IndexedSeq(99L, 0L, 0L, 0L)
     }
 
-    val startingPoint = Point(0, 0)
     val emergencyHull: Hull = Map[Point, Panel]().withDefaultValue(Panel(Black))
 
-    val paintedPoints = mutable.HashSet[Point]()
-    var robot = Robot(startingPoint, North, emergencyHull, makeMemory(), robot => paintedPoints.add(robot.position))
+    {   //part1
+        val paintedPoints = mutable.HashSet[Point]()
+        val startingPoint = Point(0, 0)
+        var robot = Robot(startingPoint, North, emergencyHull, makeMemory(), robot => paintedPoints.add(robot.position))
 
-    while (robot.computer.control == Continue) {
-//        println("Hull = " + robot.hull)
-//        println(robot)
-//        println()
-        robot = robot.step(robot)
+        while (robot.computer.control == Continue) {
+            //        println("Hull = " + robot.hull)
+            //        println(robot)
+            //        println()
+            robot = robot.step(robot)
+        }
+
+        println(paintedPoints.size)
     }
+    {   //part2
+        val startingPoint = Point(0, 0)
+        val hullWithWhitePanel = emergencyHull.updated(startingPoint, Panel(White))
+        var robot = Robot(startingPoint, North, hullWithWhitePanel, makeMemory(), robot => ())
 
-    println(paintedPoints.size)
+        while (robot.computer.control == Continue) {
+            robot = robot.step(robot)
+        }
+
+        val lowestY = robot.hull.keys.minBy(_.y).y
+        val highestY = robot.hull.keys.maxBy(_.y).y
+        val lowestX = robot.hull.keys.minBy(_.x).x
+        val highestX = robot.hull.keys.maxBy(_.x).x
+
+        for (y <- lowestY to highestY) {
+            for (x <- lowestX to highestX) {
+                print(robot.hull(Point(x, y)))
+            }
+            println()
+        }
+    }
 }
 
 
