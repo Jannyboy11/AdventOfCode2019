@@ -34,11 +34,11 @@ object Imports {
     val Left = 0L
     val Right = 1L
 
-    implicit class HullExtensions(val hull: Hull) extends AnyVal {
-        @inline def apply(point: Point): Panel = apply(point.x, point.y)
-        @inline def apply(x: Int, y: Int): Panel = hull(x)(y)
-        @inline def set(point: Point, panel: Panel): Hull = set(point.x, point.y, panel)
-        @inline def set(x: Int, y: Int, panel: Panel): Hull = hull.updated(y, hull(y).updated(x, panel))
+    implicit class HullExtensions[A](val hull: IndexedSeq[IndexedSeq[A]]) extends AnyVal {
+        @inline def apply(point: Point): A = apply(point.x, point.y)
+        @inline def apply(x: Int, y: Int): A = hull(x)(y)
+        @inline def set(point: Point, panel: A): IndexedSeq[IndexedSeq[A]] = set(point.x, point.y, panel)
+        @inline def set(x: Int, y: Int, panel: A): IndexedSeq[IndexedSeq[A]] = hull.updated(y, hull(y).updated(x, panel))
     }
 }
 
@@ -49,8 +49,8 @@ object Day11 extends App {
     val fileName = "src/main/resources/day11input.txt"
     val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(_.toLong).toIndexedSeq
 
-    def newMemory(): Memory = {
-        numbers
+    def makeMemory(): Memory = {
+
         Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
             Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(Left))) ++
             Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
@@ -60,18 +60,26 @@ object Day11 extends App {
             Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
             Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(Left))) ++
             Instruction.encode(Instruction(Abort, Seq(), Seq()))
+
+        numbers
+
+        //Instruction.encode(Instruction(Add, Seq(ImmediateMode, ImmediateMode, PositionMode), Seq(2L, 3L, 20L))) ++ IndexedSeq(99L, 0L, 0L, 0L)
     }
 
-    val point = Point(2, 2)
-    val emergencyHull: Hull = IndexedSeq.tabulate(5, 5)({case (x, y) => Panel(Black)})
+    val startingPoint = Point(5, 5)
+    val emergencyHull: Hull = IndexedSeq.tabulate(10, 10)({case (x, y) => Panel(Black)})
 
     val paintedPoints = mutable.HashSet[Point]()
-    var robot = Robot(point, North, emergencyHull, newMemory(), robot => paintedPoints.add(robot.position))
+    var robot = Robot(startingPoint, North, emergencyHull, makeMemory(), robot => paintedPoints.add(robot.position))
 
     while (robot.computer.control == Continue) {
-        robot = robot.step(robot)
-        robot.hull.foreach(println)
+        val strings = robot.hull.map(row => row.map(panel => panel.toString()).flatten).set(robot.position, robot.direction.toString.head)
+        strings.foreach(println)
+
+        //robot.hull.foreach(println)
         println(robot)
+        robot = robot.step(robot)
+        println()
     }
 
     println(paintedPoints.size)
@@ -98,8 +106,12 @@ object Robot {
     }
 
     val inputFunction: Input[Robot] = (robot) => robot.hull(robot.position) match {
-        case Panel(Black) => 0L
-        case Panel(White) => 1L
+        case Panel(Black) =>
+            println("supplying input 0")
+            0L
+        case Panel(White) =>
+            println("supplying input 1")
+            1L
     }
 
     def makePaintFunction(sideEffect: Robot => Unit): Output[Robot] = (memoryValue, robot) => {
@@ -111,6 +123,7 @@ object Robot {
         val newHull = robot.hull.set(robot.position, Panel(colour))
         val newRobot = new Robot(robot.position, robot.direction, newHull, robot.computer)
 
+        println("PAINTING")
         sideEffect(newRobot)
 
         (makeTurnFunction(sideEffect), newRobot)
@@ -130,6 +143,8 @@ object Robot {
 
         val newPosition = robot.position + newDirection.unitPoint
         val newRobot = new Robot(newPosition, newDirection, robot.hull, robot.computer)
+
+        println("TURNING")
 
         (makePaintFunction(paintSideEffect), newRobot)
     }
@@ -174,11 +189,11 @@ case class Computer[CTX] private(instructionPointer: Address,
                 case PositionMode =>
                     val address = memoryValue.intValue
                     val newMem = resizeMemory(memory, address)
-                    (newMem, newMem(address).intValue)
+                    (newMem, address)
                 case RelativeMode =>
                     val address = relativeBase + memoryValue.intValue
                     val newMem = resizeMemory(memory, address)
-                    (newMem, newMem(address).intValue)
+                    (newMem, address)
                 case ImmediateMode => throw new RuntimeException("Cannot write to immediate value!")
             }
         }
@@ -197,19 +212,13 @@ case class Computer[CTX] private(instructionPointer: Address,
             }
         }
 
-        def resizeMemory(memory: Memory, toAddress: Address): Memory = memory.padTo(toAddress + 1, 0L)
-        def writeToMemory(memory: Memory, position: Address, value: MemoryValue): Memory = memory.updated(position, value)
+        def resizeMemory(mem: Memory, toAddress: Address): Memory = mem.padTo(toAddress + 1, 0L)
+        def writeToMemory(mem: Memory, position: Address, value: MemoryValue): Memory = resizeMemory(mem, position).updated(position, value)
 
-        println()
         println(memory)
-        println(instructionPointer)
-
         val instruction = Instruction.decode(memory, instructionPointer)
-
-        println(instruction)
-        println()
-
         val nextAddress = instructionPointer + instruction.operands.size + 1
+        println(s"Instruction at $instructionPointer = $instruction")
 
         instruction match {
             case Instruction(opCode@(Add | Multiply | LessThan | Equals), Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
