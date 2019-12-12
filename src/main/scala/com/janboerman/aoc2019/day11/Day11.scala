@@ -6,7 +6,7 @@ import scala.collection.mutable
 import scala.io.Source
 
 object Imports {
-    type MemoryValue = Long
+    type MemoryValue = BigInt
     type Address = Int
     type OpCode = Int
     type OperandMode = Int
@@ -14,7 +14,8 @@ object Imports {
     trait Input[CTX] extends ((CTX) => MemoryValue)
     trait Output[CTX] extends ((MemoryValue, CTX) => (Output[CTX], CTX))
 
-    type Hull = IndexedSeq[IndexedSeq[Panel]]
+    type Colour = MemoryValue
+    type Hull = Map[Point, Panel]
 
     val Add = 1
     val Multiply = 2
@@ -31,15 +32,11 @@ object Imports {
     val ImmediateMode = 1
     val RelativeMode = 2
 
-    val Left = 0L
-    val Right = 1L
+    val Left = BigInt(0)
+    val Right = BigInt(1)
 
-    implicit class HullExtensions[A](val hull: IndexedSeq[IndexedSeq[A]]) extends AnyVal {
-        @inline def apply(point: Point): A = apply(point.x, point.y)
-        @inline def apply(x: Int, y: Int): A = hull(x)(y)
-        @inline def set(point: Point, panel: A): IndexedSeq[IndexedSeq[A]] = set(point.x, point.y, panel)
-        @inline def set(x: Int, y: Int, panel: A): IndexedSeq[IndexedSeq[A]] = hull.updated(y, hull(y).updated(x, panel))
-    }
+    val Black = BigInt(0)
+    val White = BigInt(1)
 }
 
 import Imports._
@@ -47,48 +44,48 @@ import Imports._
 
 object Day11 extends App {
     val fileName = "src/main/resources/day11input.txt"
-    val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(_.toLong).toIndexedSeq
+    val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(string => new BigInt(new java.math.BigInteger(string))).toIndexedSeq
 
     def makeMemory(): Memory = {
 
-        Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(Left))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(Left))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(Left))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(1L))) ++
-            Instruction.encode(Instruction(Output, Seq(ImmediateMode), Seq(Left))) ++
-            Instruction.encode(Instruction(Abort, Seq(), Seq()))
+        Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Black)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+            Instruction(Input, Seq(PositionMode), Seq(0)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Black)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Right)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(White)).encode() ++
+            Instruction(Output, Seq(ImmediateMode), Seq(Left)).encode() ++
+            Instruction(Abort, Seq(), Seq()).encode()
 
         numbers
 
         //Instruction.encode(Instruction(Add, Seq(ImmediateMode, ImmediateMode, PositionMode), Seq(2L, 3L, 20L))) ++ IndexedSeq(99L, 0L, 0L, 0L)
     }
 
-    val startingPoint = Point(5, 5)
-    val emergencyHull: Hull = IndexedSeq.tabulate(10, 10)({case (x, y) => Panel(Black)})
+    val startingPoint = Point(0, 0)
+    val emergencyHull: Hull = Map[Point, Panel]().withDefaultValue(Panel(Black))
 
     val paintedPoints = mutable.HashSet[Point]()
     var robot = Robot(startingPoint, North, emergencyHull, makeMemory(), robot => paintedPoints.add(robot.position))
 
     while (robot.computer.control == Continue) {
-        val strings = robot.hull.map(row => row.map(panel => panel.toString()).flatten).set(robot.position, robot.direction.toString.head)
-        strings.foreach(println)
-
-        //robot.hull.foreach(println)
-        println(robot)
+//        println("Hull = " + robot.hull)
+//        println(robot)
+//        println()
         robot = robot.step(robot)
-        println()
     }
 
     println(paintedPoints.size)
 }
 
-
-sealed trait Colour
-case object Black extends Colour
-case object White extends Colour
 
 case class Panel(colour: Colour) {
     override def toString(): String = colour match {
@@ -106,24 +103,18 @@ object Robot {
     }
 
     val inputFunction: Input[Robot] = (robot) => robot.hull(robot.position) match {
-        case Panel(Black) =>
-            println("supplying input 0")
-            0L
-        case Panel(White) =>
-            println("supplying input 1")
-            1L
+        case Panel(inputColour) =>
+            //println(s"SUPPLYING INPUT ${inputColour}")
+            inputColour
     }
 
     def makePaintFunction(sideEffect: Robot => Unit): Output[Robot] = (memoryValue, robot) => {
-        val colour: Colour = memoryValue match {
-            case 0L => Black
-            case 1L => White
-        }
+        val colour: Colour = memoryValue
+        //println(s"PAINTING ${if (colour == Black) "BLACK" else "WHITE"}")
 
-        val newHull = robot.hull.set(robot.position, Panel(colour))
+        val newHull = robot.hull.updated(robot.position, Panel(colour))
         val newRobot = new Robot(robot.position, robot.direction, newHull, robot.computer)
 
-        println("PAINTING")
         sideEffect(newRobot)
 
         (makeTurnFunction(sideEffect), newRobot)
@@ -141,10 +132,17 @@ object Robot {
             case (Right, West) => North
         }
 
-        val newPosition = robot.position + newDirection.unitPoint
+        val addPoint = newDirection match {
+            case North => Point(0, -1)
+            case South => Point(0, 1)
+            case West => Point(-1, 0)
+            case East => Point(1, 0)
+        }
+
+        val newPosition = robot.position + addPoint
         val newRobot = new Robot(newPosition, newDirection, robot.hull, robot.computer)
 
-        println("TURNING")
+        //println(s"TURNING ${if (memoryValue == Left) "LEFT" else "RIGHT"}")
 
         (makePaintFunction(paintSideEffect), newRobot)
     }
@@ -152,7 +150,7 @@ object Robot {
 }
 
 class Robot(val position: Point, val direction: Direction, val hull: Hull, val computer: Computer[Robot]) {
-    override def toString: String = s"Robot($position, $direction)"
+    override def toString: String = s"Robot($position, ${direction.getClass.getSimpleName})"
 
     def step(robot: Robot): Robot = {
         val (newComputer, updatedRobot) = robot.computer.step(robot)
@@ -161,10 +159,6 @@ class Robot(val position: Point, val direction: Direction, val hull: Hull, val c
 
     def currentColour: Colour = hull(position).colour
 }
-
-
-
-
 
 
 sealed trait Control
@@ -215,10 +209,10 @@ case class Computer[CTX] private(instructionPointer: Address,
         def resizeMemory(mem: Memory, toAddress: Address): Memory = mem.padTo(toAddress + 1, 0L)
         def writeToMemory(mem: Memory, position: Address, value: MemoryValue): Memory = resizeMemory(mem, position).updated(position, value)
 
-        println(memory)
+        //println(memory)
         val instruction = Instruction.decode(memory, instructionPointer)
         val nextAddress = instructionPointer + instruction.operands.size + 1
-        println(s"Instruction at $instructionPointer = $instruction")
+        //println(s"Instruction at $instructionPointer = $instruction")
 
         instruction match {
             case Instruction(opCode@(Add | Multiply | LessThan | Equals), Seq(m1, m2, m3), Seq(o1, o2, o3)) =>
@@ -302,15 +296,7 @@ object Instruction {
         Instruction(opCode, operandModes, operands)
     }
 
-    def encode(instruction: Instruction): IndexedSeq[MemoryValue] = {
-        var opValue: MemoryValue = instruction.opcode
-        var baseMode = 100
-        for (mode <- instruction.modes) {
-            opValue += baseMode * mode
-            baseMode *= 10
-        }
-        IndexedSeq(opValue) ++ instruction.operands.toIndexedSeq
-    }
+
 
 }
 
@@ -335,6 +321,16 @@ case class Instruction(opcode: OpCode, modes: Seq[OperandMode], operands: Seq[Me
         }
 
         s"Instruction($opcodeString, $modesString, $operands)"
+    }
+
+    def encode(): IndexedSeq[MemoryValue] = {
+        var opValue: MemoryValue = opcode
+        var baseMode = 100
+        for (mode <- modes) {
+            opValue += baseMode * mode
+            baseMode *= 10
+        }
+        IndexedSeq(opValue) ++ operands.toIndexedSeq
     }
 }
 
