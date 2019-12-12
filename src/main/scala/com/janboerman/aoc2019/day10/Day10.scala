@@ -8,16 +8,9 @@ object Imports {
     }
 
     def angle(centre: Point, point: Point): Double = {
-        if (centre == point) return Math.PI * 2
-
         val diff = point - centre
 //        println()
 //        println(s"angle (diff.x, diff.y) = (${diff.x}, ${diff.y})")
-
-        if (diff.x == 0 && diff.y < 0) return 0D
-        if (diff.x > 0 && diff.y == 0) return Math.PI * 0.5
-        if (diff.x == 0 && diff.y > 0) return Math.PI
-        if (diff.x < 0 && diff.y == 0) return Math.PI * 1.5
 
         def inverseTan(opposite: Int, adjacent: Int): Double = Math.atan(opposite.toDouble / adjacent.toDouble)
 

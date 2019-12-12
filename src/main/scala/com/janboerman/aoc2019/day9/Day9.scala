@@ -65,7 +65,7 @@ object Day9 extends App {
         val result1 = runComputer(computer)
         println(result1.signal)
     }
-    {
+   {
         val computer = Computer(newMemory, 2L, SequentialMode)
         val result2 = runComputer(computer)
         println(result2.signal)
