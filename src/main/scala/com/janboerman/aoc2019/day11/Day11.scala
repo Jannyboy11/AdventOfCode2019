@@ -106,7 +106,7 @@ object Robot {
     val inputFunction: Input[Robot] = (robot) => robot.hull(robot.position) match {
         case Panel(inputColour) =>
             //println(s"SUPPLYING INPUT ${inputColour}")
-            (inputColour, inputFunction)
+            (inputFunction, inputColour)
     }
 
     def makePaintFunction(sideEffect: Robot => Unit): Output[Robot] = (memoryValue, robot) => {

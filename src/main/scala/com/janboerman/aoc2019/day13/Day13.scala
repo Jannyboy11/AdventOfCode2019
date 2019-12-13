@@ -34,29 +34,29 @@ object Day13 extends App {
     val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(string => new BigInt(new java.math.BigInteger(string))).toIndexedSeq
 
     {   //Part1
-
-        var cpu: Computer[Part1.GridContext] = Computer(numbers, dummyInput, Part1.OutputX)
-        var context = Part1.InitialGridContext
-        while (cpu.control == Continue) {
-            val (c, ctx) = cpu.step(context)
-            cpu = c
-            context = ctx
-        }
-        val result1 = context._3.values.count(_ == Block)
+        val computer: Computer[Part1.GridContext] = Computer(numbers, dummyInput, Part1.OutputX)
+        val (cpu, ctx) = runComputer(computer, Part1.InitialGridContext)
+        val result1 = ctx._3.values.count(_ == Block)
         println(result1)
     }
 
     {   //Part2
         val initialMemory = numbers.updated(0, BigInt(2))
-        var context = Part2.InitialContext
-        var cpu: Computer[Part2.Context] = Computer(initialMemory, Part2.autoPilot, Part2.OutputX)
-        while (cpu.control == Continue) {
-            val (c, ctx) = cpu.step(context)
-            cpu = c
-            context = ctx
-        }
-        val result2 = context.score
+        val computer: Computer[Part2.Context] = Computer(initialMemory, Part2.autoPilot, Part2.OutputX)
+        val (cpu, ctx) = runComputer(computer, Part2.InitialContext)
+        val result2 = ctx.score
         println(result2)
+    }
+
+    def runComputer[CTX](computer: Computer[CTX], context: CTX): (Computer[CTX], CTX) = {
+        var cpu = computer
+        var ctx = context
+        while (cpu.control == Continue) {
+            val (comp, contxt) = cpu.step(ctx)
+            cpu = comp
+            ctx = contxt
+        }
+        (cpu, ctx)
     }
 }
 
@@ -75,6 +75,7 @@ case class GameState(joyStick: JoyStick,
             case Ball => 'O'
         }
 
+        //can optimize this by having grid be a IndexedSeq[IndexedSeq[TileId]].
         val xs = grid.keys.map(_.x)
         val ys = grid.keys.map(_.y)
         val minX = if (xs.isEmpty) 0 else xs.min
@@ -91,6 +92,7 @@ case class GameState(joyStick: JoyStick,
             }
             println()
         }
+        println(s"Score: $score")
     }
 }
 
@@ -98,8 +100,8 @@ object Part2 {
     type Context = GameState
     val InitialContext = GameState(Neutral, 0, 0, EmptyGrid, 0)
 
-    val manualInput: Input[Context] = {
-        case game =>
+    val manualJoystickInput: Input[Context] = {
+        game =>
             game.display()
 
             println("Input Joystick: Left, Neutral or Right (L/N/R)")
@@ -116,17 +118,17 @@ object Part2 {
                 }
             }
             println()
-            (joystickInput, manualInput)
+            (manualJoystickInput, joystickInput)
     }
 
     val autoPilot: Input[Context] = {
-        case (game: GameState) =>
+        game =>
             //game.display()
 
-            val maybeBall = game.grid.find({case (_, tile) => tile == Ball})
-            val maybePaddle = game.grid.find({case (_, tile) => tile == HorizontalPaddle})
+            val maybeBall = game.grid.find({ case (_, tile) => tile == Ball })
+            val maybePaddle = game.grid.find({ case (_, tile) => tile == HorizontalPaddle })
 
-            val input: MemoryValue = (maybeBall, maybePaddle) match {
+            val automaticJoystickInput: MemoryValue = (maybeBall, maybePaddle) match {
                 case (Some((Point(ballX, _), _)), Some((Point(paddleX, _), _))) =>
                     if (ballX < paddleX) BigInt(-1)
                     else if (ballX > paddleX) BigInt(1)
@@ -135,7 +137,7 @@ object Part2 {
             }
 
             //println()
-            (input, autoPilot)
+            (autoPilot, automaticJoystickInput)
     }
 
     val OutputX: Output[Context] = {
@@ -154,7 +156,11 @@ object Part2 {
     val OutputTileId: Output[Context] = {
         case (memValue, GameState(joyStick, x, y, grid, score)) =>
             val tileId = memValue.intValue
-            val newGrid = grid.updated(Point(x, y), tileId)
+            val newGrid = if (tileId == Empty) {
+                grid.removed(Point(x, y))
+            } else {
+                grid.updated(Point(x, y), tileId)
+            }
             (OutputX, GameState(joyStick, x, y, newGrid, score))
     }
 
