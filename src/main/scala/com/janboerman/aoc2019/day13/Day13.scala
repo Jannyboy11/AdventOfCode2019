@@ -47,10 +47,9 @@ object Day13 extends App {
     }
 
     {   //Part2
-
         val initialMemory = numbers.updated(0, BigInt(2))
         var context = Part2.InitialContext
-        var cpu: Computer[Part2.Context] = Computer(initialMemory, Part2.inputJoyStick, Part2.OutputX)
+        var cpu: Computer[Part2.Context] = Computer(initialMemory, Part2.autoPilot, Part2.OutputX)
         while (cpu.control == Continue) {
             val (c, ctx) = cpu.step(context)
             cpu = c
@@ -99,7 +98,7 @@ object Part2 {
     type Context = GameState
     val InitialContext = GameState(Neutral, 0, 0, EmptyGrid, 0)
 
-    val inputJoyStick: Input[Context] = {
+    val manualInput: Input[Context] = {
         case game =>
             game.display()
 
@@ -112,12 +111,31 @@ object Part2 {
                     case 'N' | 'n' => 0
                     case 'R' | 'r' => 1
                     case _ =>
-                        println("indvalid input, please choose from: {L, N, R}")
+                        println("invalid input, please choose from: {L, N, R}")
                         -2
                 }
             }
             println()
-            (joystickInput, inputJoyStick)
+            (joystickInput, manualInput)
+    }
+
+    val autoPilot: Input[Context] = {
+        case (game: GameState) =>
+            //game.display()
+
+            val maybeBall = game.grid.find({case (_, tile) => tile == Ball})
+            val maybePaddle = game.grid.find({case (_, tile) => tile == HorizontalPaddle})
+
+            val input: MemoryValue = (maybeBall, maybePaddle) match {
+                case (Some((Point(ballX, _), _)), Some((Point(paddleX, _), _))) =>
+                    if (ballX < paddleX) BigInt(-1)
+                    else if (ballX > paddleX) BigInt(1)
+                    else BigInt(0)
+                case _ => BigInt(0)
+            }
+
+            //println()
+            (input, autoPilot)
     }
 
     val OutputX: Output[Context] = {
