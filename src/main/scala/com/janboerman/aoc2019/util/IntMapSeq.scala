@@ -4,7 +4,7 @@ import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.immutable.IntMap
 import scala.collection.{SeqFactory, mutable}
 
-//WIP!
+//TODO WIP!
 
 @Deprecated
 object IntMapSeq {
@@ -99,6 +99,7 @@ class IntMapSeq[+A](private val map: IntMap[A], private val fallback: Int => A) 
     override def toString(): String = super[IndexedSeq].toString()
 }
 
+//TODO under the hood these factories/builders are used to construct new sequences, but the returned IntMapSeqs do not support default values.
 @Deprecated
 class IntMapSeqFactory extends SeqFactory[IntMapSeq] {
     override def from[A](source: IterableOnce[A]): IntMapSeq[A] = IntMapSeq.from(source)
