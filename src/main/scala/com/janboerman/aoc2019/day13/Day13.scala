@@ -4,7 +4,7 @@ import com.janboerman.aoc2019.intcode.Types._
 import com.janboerman.aoc2019.intcode.{Computer, Continue}
 import com.janboerman.aoc2019.util.Point
 
-import scala.io.Source
+import scala.io.{Source, StdIn}
 
 object Types {
     type Grid = Map[Point, TileId]
@@ -34,6 +34,7 @@ object Day13 extends App {
     val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(string => new BigInt(new java.math.BigInteger(string))).toIndexedSeq
 
     {   //Part1
+
         var cpu: Computer[Part1.GridContext] = Computer(numbers, dummyInput, Part1.OutputX)
         var context = Part1.InitialGridContext
         while (cpu.control == Continue) {
@@ -46,8 +47,6 @@ object Day13 extends App {
     }
 
     {   //Part2
-        //TODO simulate the game - (just like the robot)
-        //TODO be sure to update the grid as blocks get broken
 
         val initialMemory = numbers.updated(0, BigInt(2))
         var context = Part2.InitialContext
@@ -57,45 +56,94 @@ object Day13 extends App {
             cpu = c
             context = ctx
         }
-        val result2 = context._5
+        val result2 = context.score
         println(result2)
     }
 }
 
+case class GameState(joyStick: JoyStick,
+                     x: PositionX,
+                     y: PositionY,
+                     grid: Grid,
+                     score: Score) {
+
+    def display(): Unit = {
+        def showTile(tile: TileId): Char = tile match {
+            case Empty => ' '
+            case Wall => 'W'
+            case Block => 'B'
+            case HorizontalPaddle => '#'
+            case Ball => 'O'
+        }
+
+        val xs = grid.keys.map(_.x)
+        val ys = grid.keys.map(_.y)
+        val minX = if (xs.isEmpty) 0 else xs.min
+        val minY = if (ys.isEmpty) 0 else ys.min
+        val maxX = if (xs.isEmpty) 0 else xs.max
+        val maxY = if (ys.isEmpty) 0 else ys.max
+
+        for (y <- minY to maxY) {
+            for (x <- minX to maxX) {
+                grid.get(Point(x, y)) match {
+                    case Some(tile) => print(showTile(tile))
+                    case None => print(' ')
+                }
+            }
+            println()
+        }
+    }
+}
 
 object Part2 {
-    type Context = (JoyStick, PositionX, PositionY, Grid, Score)
-    val InitialContext = (Neutral, 0, 0, EmptyGrid, 0)
+    type Context = GameState
+    val InitialContext = GameState(Neutral, 0, 0, EmptyGrid, 0)
 
     val inputJoyStick: Input[Context] = {
-        case (joyStick, x, y, grid, score) =>
-            (joyStick, inputJoyStick)
+        case game =>
+            game.display()
+
+            println("Input Joystick: Left, Neutral or Right (L/N/R)")
+            var joystickInput = -2
+            while (joystickInput == -2) {
+                val char = StdIn.readChar()
+                joystickInput = char match {
+                    case 'L' | 'l' => -1
+                    case 'N' | 'n' => 0
+                    case 'R' | 'r' => 1
+                    case _ =>
+                        println("indvalid input, please choose from: {L, N, R}")
+                        -2
+                }
+            }
+            println()
+            (joystickInput, inputJoyStick)
     }
 
     val OutputX: Output[Context] = {
-        case (memValue, (joyStick, _, y, grid, score)) =>
+        case (memValue, GameState(joyStick, x, y, grid, score)) =>
             val newX = memValue.intValue
-            (OutputY, (joyStick, newX, y, grid, score))
+            (OutputY, GameState(joyStick, newX, y, grid, score))
     }
 
     val OutputY: Output[Context] = {
-        case (memValue, (joyStick, x, _, grid, score)) =>
+        case (memValue, GameState(joyStick, x, y, grid, score)) =>
             val newY = memValue.intValue
             val newOutput = if (x == -1 && newY == 0) OutputScore else OutputTileId
-            (newOutput, (joyStick, x, newY, grid, score))
+            (newOutput, GameState(joyStick, x, newY, grid, score))
     }
 
     val OutputTileId: Output[Context] = {
-        case (memValue, (joyStick, x, y, grid, score)) =>
+        case (memValue, GameState(joyStick, x, y, grid, score)) =>
             val tileId = memValue.intValue
             val newGrid = grid.updated(Point(x, y), tileId)
-            (OutputX, (joyStick, x, y, newGrid, score))
+            (OutputX, GameState(joyStick, x, y, newGrid, score))
     }
 
     val OutputScore: Output[Context] = {
-        case (memValue, (joyStick, x, y, grid, score)) =>
-            val newCore = memValue.intValue
-            (OutputX, (joyStick, x, y, grid, newCore))
+        case (memValue, GameState(joyStick, x, y, grid, _)) =>
+            val newScore = memValue.intValue
+            (OutputX, GameState(joyStick, x, y, grid, newScore))
     }
 }
 
@@ -104,24 +152,21 @@ object Part1 {
     val InitialGridContext: GridContext = (0, 0, EmptyGrid)
 
     val OutputX: Output[GridContext] = {
-        case (memValue, (_, y, grid)) => {
+        case (memValue, (_, y, grid)) =>
             val distanceX = memValue.intValue
             (OutputY, (distanceX, y, grid))
-        }
     }
 
     val OutputY: Output[GridContext] =  {
-        case (memValue, (x, _, grid)) => {
+        case (memValue, (x, _, grid)) =>
             val distanceY = memValue.intValue
             (OutputTileId, (x, distanceY, grid))
-        }
     }
 
     val OutputTileId: Output[GridContext] = {
-        case (memValue, (x, y, grid)) => {
+        case (memValue, (x, y, grid)) =>
             val tileId = memValue.intValue
             val newGrid = grid.updated(Point(x, y), tileId)
             (OutputX, (x, y, newGrid))
-        }
     }
 }
