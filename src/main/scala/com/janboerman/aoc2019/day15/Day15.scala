@@ -45,7 +45,7 @@ object Day15 extends App {
     val result1 = droid.movesMap(droid.position)
     println(result1)
 
-    val result2 = 
+
 
 }
 import Droid._
@@ -141,7 +141,6 @@ case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command, movesMap
 
     def display(): Unit = {
         def showTile(tile: Tile): Char = tile match {
-            case Unexplored => '~'
             case Empty => '.'
             case Wall => '\u2588'
             case Oxygen => 'O'
@@ -161,7 +160,7 @@ case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command, movesMap
                 } else {
                     grid.get(Point(x, y)) match {
                         case Some(tile) => print(showTile(tile))
-                        case None => print('~')
+                        case None => print('\u2591')
                     }
                 }
             }
