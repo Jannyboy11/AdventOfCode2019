@@ -117,7 +117,7 @@ object Part2 {
                 }
             }
             println()
-            (manualJoystickInput, joystickInput)
+            (manualJoystickInput, game, joystickInput)
     }
 
     val autoPilot: Input[Context] = {
@@ -138,7 +138,7 @@ object Part2 {
             }
 
             //println()
-            (autoPilot, joystickInput)
+            (autoPilot, game, joystickInput)
     }
 
     val OutputX: Output[Context] = {

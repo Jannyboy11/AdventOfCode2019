@@ -4,7 +4,7 @@ import com.janboerman.aoc2019.intcode.{Computer, Continue}
 import com.janboerman.aoc2019.intcode.Types.{Input, Memory, MemoryValue, Output}
 import com.janboerman.aoc2019.util.Point
 
-import scala.io.Source
+import scala.io.{Source, StdIn}
 
 object Types {
     type Tile = Int
@@ -33,32 +33,68 @@ object Day15 extends App {
     val fileName = "src/main/resources/day15input.txt"
     val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(string => new BigInt(new java.math.BigInteger(string))).toIndexedSeq
 
-    val newDroid = Droid(Point(0, 0), Map.empty, West)
+    val newDroid = Droid(Point(0, 0), Map.empty, North)
 
-    var computer = Computer[Droid](numbers, Part1.input, Part1.output)
+    var computer = Computer[Droid](numbers, Part1.autoPilot, Part1.output)
     var droid = newDroid
     while (computer.control == Continue && !droid.grid.get(droid.position).contains(Oxygen)) {
-        println("loop")
-        droid.display()
-
         val (cpu, d) = computer.step(droid)
         computer = cpu
         droid = d
     }
-    println(droid.position)
+    val result1 = droid.movesMap(droid.position)
+    println(result1)
+
+    val result2 = 
 
 }
+import Droid._
 
 object Part1 {
-    val input: Input[Droid] = {
-        case Surroundings(Wall, Wall, Wall, _) =>
-            (input, West)
-        case Surroundings(Wall, Wall, _, _) =>
-            (input, South)
-        case Surroundings(Wall, _, _, _) =>
-            (input, East)
-        case droid =>
-            (input, North)
+    val autoPilot: Input[Droid] = {
+        case droid@Droid(position, grid, lastMove, movesMap) =>
+            droid.display()
+            var attemptDirections = lastMove match {
+                case North => List(East, North, West, South)
+                case West => List(North, West, South, East)
+                case South => List(West, South, East, North)
+                case East => List(South, East, North, West)
+            }
+
+            var directionPoint = nextPoint(position, attemptDirections.head)
+            while (grid.getOrElse(directionPoint, Unexplored) == Wall) {
+                attemptDirections = attemptDirections.tail
+                directionPoint = nextPoint(position, attemptDirections.head)
+            }
+
+            val direction = attemptDirections.head
+            val newGrid = if (attemptDirections.tail.isEmpty) grid.updated(position, Wall) else grid
+            val newDroid = Droid(position, newGrid, direction, movesMap)
+
+            (autoPilot, newDroid, direction)
+    }
+
+
+    val manualInput: Input[Droid] = {
+        case droid@Droid(position, grid, lastMove, movesMap) =>
+            droid.display()
+            println("Enter direction [N]orth, [S]outh, [E]ast, [W]est")
+
+            var direction = BigInt(-1)
+            while (direction == BigInt(-1)) {
+                val char = StdIn.readChar()
+                direction = char match {
+                    case 'N' | 'n' => North
+                    case 'S' | 's' => South
+                    case 'E' | 'e' => East
+                    case 'W' | 'w' => West
+                    case _ => BigInt(-1)
+                }
+                if (direction == BigInt(-1)) println("Invalid direction, please enter N, S, E or W")
+            }
+
+            val newDroid = Droid(position, grid, direction, movesMap)
+            (manualInput, newDroid, direction)
     }
 
     val output: Output[Droid] = {
@@ -68,31 +104,22 @@ object Part1 {
     }
 }
 
-object Surroundings {
-    def unapply(droid: Droid): Option[(Tile, Tile, Tile, Tile)] = {
-        //north, east, south, west
-        val northPoint = droid.position + Point(0, -1)
-        val southPoint = droid.position + Point(0, 1)
-        val westPoint = droid.position + Point(-1, 0)
-        val eastPoint = droid.position + Point(1, 0)
+object Droid {
+    def nextPoint(point: Point, direction: Command): Point = direction match {
+        case North => point + Point(0, -1)
+        case South => point + Point(0, 1)
+        case West => point + Point(-1, 0)
+        case East => point + Point(1, 0)
+    }
 
-        val tileNorth = droid.grid.getOrElse(northPoint, Unexplored)
-        val tileSouth = droid.grid.getOrElse(southPoint, Unexplored)
-        val tileWest = droid.grid.getOrElse(westPoint, Unexplored)
-        val tileEast = droid.grid.getOrElse(eastPoint, Unexplored)
-
-        Some((tileNorth, tileEast, tileSouth, tileWest))
+    def apply(position: Point, grid: Grid, lastMoveAttempt: Command): Droid = {
+        new Droid(position, grid, lastMoveAttempt, Map(position -> 0))
     }
 }
 
-case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command) {
+case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command, movesMap: Map[Point, Int]) {
     def update(statusCode: Reply): Droid = {
-        val updatePosition = lastMoveAttempt match {
-            case North => position + Point(0, -1)
-            case South => position + Point(0, 1)
-            case West => position + Point(-1, 0)
-            case East => position + Point(1, 0)
-        }
+        val updatePosition = nextPoint(position, lastMoveAttempt)
 
         val (newPos, newGrid) = statusCode match {
             case WallHit => (position, grid.updated(updatePosition, Wall))
@@ -103,7 +130,12 @@ case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command) {
                 (position, grid)
         }
 
-        Droid(newPos, newGrid, lastMoveAttempt)
+        val currentPlusOne = movesMap(position) + 1
+        val newMovesMap = movesMap.get(updatePosition) match {
+            case Some(moveCount) if moveCount <= currentPlusOne => movesMap
+            case _ => movesMap.updated(updatePosition, currentPlusOne)
+        }
+        Droid(newPos, newGrid, lastMoveAttempt, newMovesMap)
     }
 
 
@@ -111,24 +143,25 @@ case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command) {
         def showTile(tile: Tile): Char = tile match {
             case Unexplored => '~'
             case Empty => '.'
-            case Wall => '#'
+            case Wall => '\u2588'
             case Oxygen => 'O'
         }
 
-        val xs = grid.keys.map(_.x)
-        val ys = grid.keys.map(_.y)
-        val minX = if (xs.isEmpty) 0 else xs.min
-        val minY = if (ys.isEmpty) 0 else ys.min
-        val maxX = if (xs.isEmpty) 0 else xs.max
-        val maxY = if (ys.isEmpty) 0 else ys.max
+        val xs = Some(position.x) ++ grid.keys.map(_.x)
+        val ys = Some(position.y) ++ grid.keys.map(_.y)
+        val minX = (if (xs.isEmpty) 0 else xs.min) - 1
+        val minY = (if (ys.isEmpty) 0 else ys.min) - 1
+        val maxX = (if (xs.isEmpty) 0 else xs.max) + 1
+        val maxY = (if (ys.isEmpty) 0 else ys.max) + 1
 
         for (y <- minY to maxY) {
             for (x <- minX to maxX) {
-                position match {
-                    case _ =>
-                        grid.get(Point(x, y)) match {
-                            case Some(tile) => print(showTile(tile))
-                            case None => print('~')
+                if (x == position.x && y == position.y) {
+                    print('D')
+                } else {
+                    grid.get(Point(x, y)) match {
+                        case Some(tile) => print(showTile(tile))
+                        case None => print('~')
                     }
                 }
             }

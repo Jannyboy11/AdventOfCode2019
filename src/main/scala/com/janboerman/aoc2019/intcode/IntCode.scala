@@ -6,10 +6,10 @@ object Types {
     type OpCode = Int
     type OperandMode = Int
     type Memory = IndexedSeq[MemoryValue]
-    trait Input[CTX] extends (CTX => (Input[CTX], MemoryValue))
+    trait Input[CTX] extends (CTX => (Input[CTX], CTX, MemoryValue))
     trait Output[CTX] extends ((MemoryValue, CTX) => (Output[CTX], CTX))
 
-    private val NoInput: Input[Any] = (context: Any) => (NoInput, ???)
+    private val NoInput: Input[Any] = (context: Any) => (NoInput, context, ???)
     private val NoOutput: Output[Any] = (memValue: MemoryValue, context: Any) => (NoOutput, context)
 
     def dummyInput[A]: Input[A] = NoInput.asInstanceOf[Input[A]]
@@ -108,9 +108,9 @@ case class Computer[CTX] private(instructionPointer: Address,
                 (new Computer(nextAddress, newMemory, relativeBase, fInput, fOutput, Continue), context)
             case Instruction(Input, Seq(m1), Seq(o1)) =>
                 val (mem1, position) = readPosition(memory, o1, m1)
-                val (newInputFunction, inputValue) = fInput(context)
+                val (newInputFunction, newContext, inputValue) = fInput(context)
                 val newMemory = writeToMemory(mem1, position, inputValue)
-                (new Computer(nextAddress, newMemory, relativeBase, newInputFunction, fOutput, Continue), context)
+                (new Computer(nextAddress, newMemory, relativeBase, newInputFunction, fOutput, Continue), newContext)
             case Instruction(Output, Seq(m1), Seq(o1)) =>
                 val (mem1, one) = readOperand(memory, o1, m1)
                 val (newFOutput, newContext) = fOutput(one, context)

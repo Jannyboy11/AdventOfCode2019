@@ -38,7 +38,7 @@ object Day14 extends App {
     var step = diff
     while (searching) {
         val fuel = Chemical("FUEL", nextFuel)
-        val (newOre, state) = getOreRequirements(fuel, Map.empty[Element, BigInt])
+        val (newOre, _) = getOreRequirements(fuel, Map.empty[Element, BigInt])
 
         diff = (newOre - lastOre).abs
         if (!refining) {
@@ -60,7 +60,7 @@ object Day14 extends App {
             } else {
                 //need to decrease the fuel we require.
                 step = step / BigInt(2)
-                if (step == (BigInt(0))) step = BigInt(1)
+                if (step == BigInt(0)) step = BigInt(1)
                 nextFuel = lastFuel - step
             }
         }
