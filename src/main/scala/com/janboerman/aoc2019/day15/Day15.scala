@@ -30,14 +30,14 @@ import Types._
 
 object Day15 extends App {
 
-    val fileName = "src/main/resources/day13input.txt"
+    val fileName = "src/main/resources/day15input.txt"
     val numbers: Memory = Source.fromFile(fileName).getLines().next().split(",").map(string => new BigInt(new java.math.BigInteger(string))).toIndexedSeq
 
     val newDroid = Droid(Point(0, 0), Map.empty, West)
 
     var computer = Computer[Droid](numbers, Part1.input, Part1.output)
     var droid = newDroid
-    while (computer.control == Continue && droid.grid.get(droid.position) != Some(Oxygen)) {
+    while (computer.control == Continue && !droid.grid.get(droid.position).contains(Oxygen)) {
         println("loop")
         droid.display()
 
@@ -76,10 +76,10 @@ object Surroundings {
         val westPoint = droid.position + Point(-1, 0)
         val eastPoint = droid.position + Point(1, 0)
 
-        val tileNorth = droid.grid(northPoint)
-        val tileSouth = droid.grid(southPoint)
-        val tileWest = droid.grid(westPoint)
-        val tileEast = droid.grid(eastPoint)
+        val tileNorth = droid.grid.getOrElse(northPoint, Unexplored)
+        val tileSouth = droid.grid.getOrElse(southPoint, Unexplored)
+        val tileWest = droid.grid.getOrElse(westPoint, Unexplored)
+        val tileEast = droid.grid.getOrElse(eastPoint, Unexplored)
 
         Some((tileNorth, tileEast, tileSouth, tileWest))
     }
