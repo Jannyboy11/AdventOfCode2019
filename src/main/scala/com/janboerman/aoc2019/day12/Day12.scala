@@ -157,16 +157,17 @@ case class Moon(position: Vec3d, velocity: Vec3d) {
 
 
 object Vec3d {
-    /*  <x=8, y=0, z=8>
-        <x=0, y=-5, z=-10>
-        <x=16, y=10, z=-5>
-        <x=19, y=-10, z=-7>*/
+
     val zero = withAll(0)
 
     def withAll(xyz: Int) = Vec3d(xyz, xyz, xyz)
 
     private val integerPattern = Pattern.compile("-?\\d+")
 
+    /*  <x=8, y=0, z=8>
+    <x=0, y=-5, z=-10>
+    <x=16, y=10, z=-5>
+    <x=19, y=-10, z=-7>*/
     def parse(string: String): Vec3d = {
         val matcher = integerPattern.matcher(string)
         val x = {matcher.find(); matcher.group().toInt}

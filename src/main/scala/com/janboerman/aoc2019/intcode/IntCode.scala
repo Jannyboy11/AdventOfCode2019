@@ -6,7 +6,7 @@ object Types {
     type OpCode = Int
     type OperandMode = Int
     type Memory = IndexedSeq[MemoryValue]
-    trait Input[CTX] extends ((CTX) => (Input[CTX], MemoryValue))
+    trait Input[CTX] extends (CTX => (Input[CTX], MemoryValue))
     trait Output[CTX] extends ((MemoryValue, CTX) => (Output[CTX], CTX))
 
     private val NoInput: Input[Any] = (context: Any) => (NoInput, ???)

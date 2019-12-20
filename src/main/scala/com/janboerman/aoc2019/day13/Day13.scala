@@ -39,7 +39,6 @@ object Day13 extends App {
         val result1 = ctx._3.values.count(_ == Block)
         println(result1)
     }
-
     {   //Part2
         val initialMemory = numbers.updated(0, BigInt(2))
         val computer: Computer[Part2.Context] = Computer(initialMemory, Part2.autoPilot, Part2.OutputX)
@@ -75,7 +74,7 @@ case class GameState(joyStick: JoyStick,
             case Ball => 'O'
         }
 
-        //can optimize this by having grid be a IndexedSeq[IndexedSeq[TileId]].
+        //can optimize this by having grid be an IndexedSeq[IndexedSeq[TileId]].
         val xs = grid.keys.map(_.x)
         val ys = grid.keys.map(_.y)
         val minX = if (xs.isEmpty) 0 else xs.min
@@ -125,10 +124,12 @@ object Part2 {
         game =>
             //game.display()
 
+            //can optimize this by searching close to the last found coordinates.
+            //that would require extra state tho.
             val maybeBall = game.grid.find({ case (_, tile) => tile == Ball })
             val maybePaddle = game.grid.find({ case (_, tile) => tile == HorizontalPaddle })
 
-            val automaticJoystickInput: MemoryValue = (maybeBall, maybePaddle) match {
+            val joystickInput: MemoryValue = (maybeBall, maybePaddle) match {
                 case (Some((Point(ballX, _), _)), Some((Point(paddleX, _), _))) =>
                     if (ballX < paddleX) BigInt(-1)
                     else if (ballX > paddleX) BigInt(1)
@@ -137,7 +138,7 @@ object Part2 {
             }
 
             //println()
-            (autoPilot, automaticJoystickInput)
+            (autoPilot, joystickInput)
     }
 
     val OutputX: Output[Context] = {
