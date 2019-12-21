@@ -45,7 +45,16 @@ object Day15 extends App {
     val result1 = droid.movesMap(droid.position)
     println(result1)
 
-
+    droid = new Droid(droid.position, droid.grid, droid.lastMoveAttempt, Map(droid.position -> 0))
+    var unexploredTiles = true
+    while (computer.control == Continue && unexploredTiles) {
+        val (cpu, d) = computer.step(droid)
+        computer = cpu
+        droid = d
+        unexploredTiles = droid.grid.valuesIterator.contains(Unexplored)
+    }
+    val result2 = droid.movesMap.valuesIterator.max - 1
+    println(result2)
 
 }
 import Droid._
@@ -53,7 +62,7 @@ import Droid._
 object Part1 {
     val autoPilot: Input[Droid] = {
         case droid@Droid(position, grid, lastMove, movesMap) =>
-            droid.display()
+            //droid.display()
             var attemptDirections = lastMove match {
                 case North => List(East, North, West, South)
                 case West => List(North, West, South, East)
@@ -130,17 +139,24 @@ case class Droid(position: Point, grid: Grid, lastMoveAttempt: Command, movesMap
                 (position, grid)
         }
 
+        val newerGrid = newGrid
+            .updatedWith(nextPoint(newPos, North))(_.orElse(Some(Unexplored)))
+            .updatedWith(nextPoint(newPos, South))(_.orElse(Some(Unexplored)))
+            .updatedWith(nextPoint(newPos, West))(_.orElse(Some(Unexplored)))
+            .updatedWith(nextPoint(newPos, East))(_.orElse(Some(Unexplored)))
+
         val currentPlusOne = movesMap(position) + 1
         val newMovesMap = movesMap.get(updatePosition) match {
             case Some(moveCount) if moveCount <= currentPlusOne => movesMap
             case _ => movesMap.updated(updatePosition, currentPlusOne)
         }
-        Droid(newPos, newGrid, lastMoveAttempt, newMovesMap)
+        Droid(newPos, newerGrid, lastMoveAttempt, newMovesMap)
     }
 
 
     def display(): Unit = {
         def showTile(tile: Tile): Char = tile match {
+            case Unexplored => '\u2591'
             case Empty => '.'
             case Wall => '\u2588'
             case Oxygen => 'O'
