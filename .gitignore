@@ -2,3 +2,9 @@
 *.iml
 target/
 project/target/
+project/project/target
+project/.bloop
+.vscode/*
+.bloop/*
+.metals/*
+null/*
